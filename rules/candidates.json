@@ -1,0 +1,227 @@
+{
+  "source": "heuristic",
+  "candidates": [
+    {
+      "name": "orders.id 非空",
+      "type": "not_null",
+      "severity": "P0",
+      "column": "id",
+      "design_basis": "主键/业务键不能为空",
+      "already_exists": true
+    },
+    {
+      "name": "orders.id 唯一",
+      "type": "unique",
+      "severity": "P0",
+      "columns": [
+        "id"
+      ],
+      "design_basis": "主键/业务键不能重复",
+      "already_exists": true
+    },
+    {
+      "name": "orders.user_id 外键",
+      "type": "foreign_key",
+      "severity": "P0",
+      "column": "user_id",
+      "ref_table": "users",
+      "ref_column": "id",
+      "design_basis": "user_id 应能在 users.id 中找到",
+      "already_exists": true
+    },
+    {
+      "name": "orders.product_id 外键",
+      "type": "foreign_key",
+      "severity": "P0",
+      "column": "product_id",
+      "ref_table": "products",
+      "ref_column": "id",
+      "design_basis": "product_id 应能在 products.id 中找到",
+      "already_exists": true
+    },
+    {
+      "name": "orders.qty 范围",
+      "type": "range",
+      "severity": "P2",
+      "column": "qty",
+      "min": 0,
+      "max": 6,
+      "design_basis": "按 1%/99% 分位放宽到 [0, 6]，排除离群值",
+      "already_exists": true
+    },
+    {
+      "name": "orders.unit_price 范围",
+      "type": "range",
+      "severity": "P2",
+      "column": "unit_price",
+      "min": 0,
+      "max": 2362,
+      "design_basis": "按 1%/99% 分位放宽到 [0, 2362]，排除离群值",
+      "already_exists": false
+    },
+    {
+      "name": "orders.amount 范围",
+      "type": "range",
+      "severity": "P2",
+      "column": "amount",
+      "min": 0,
+      "max": 11302,
+      "design_basis": "按 1%/99% 分位放宽到 [0, 11302]，排除离群值",
+      "already_exists": false
+    },
+    {
+      "name": "orders.status 枚举",
+      "type": "enum",
+      "severity": "P2",
+      "column": "status",
+      "values": [
+        "已发货",
+        "已完成",
+        "已支付",
+        "待支付",
+        "未知状态"
+      ],
+      "design_basis": "当前取值 5 种，适合做枚举白名单",
+      "already_exists": true
+    },
+    {
+      "name": "orders.created_at 非空",
+      "type": "not_null",
+      "severity": "P1",
+      "column": "created_at",
+      "design_basis": "时间字段不应为空",
+      "already_exists": true
+    },
+    {
+      "name": "orders.created_at 新鲜度（7 天）",
+      "type": "freshness",
+      "severity": "P1",
+      "column": "created_at",
+      "max_age_days": 7,
+      "design_basis": "分区数据不应超过 7 天未更新",
+      "already_exists": true
+    },
+    {
+      "name": "products.id 非空",
+      "type": "not_null",
+      "severity": "P0",
+      "column": "id",
+      "design_basis": "主键/业务键不能为空",
+      "already_exists": true
+    },
+    {
+      "name": "products.id 唯一",
+      "type": "unique",
+      "severity": "P0",
+      "columns": [
+        "id"
+      ],
+      "design_basis": "主键/业务键不能重复",
+      "already_exists": true
+    },
+    {
+      "name": "products.category 枚举",
+      "type": "enum",
+      "severity": "P2",
+      "column": "category",
+      "values": [
+        "家电",
+        "数码",
+        "服饰",
+        "未知",
+        "食品"
+      ],
+      "design_basis": "当前取值 5 种，适合做枚举白名单",
+      "already_exists": true
+    },
+    {
+      "name": "products.price 范围",
+      "type": "range",
+      "severity": "P2",
+      "column": "price",
+      "min": -10,
+      "max": 2298,
+      "design_basis": "按 1%/99% 分位放宽到 [-10, 2298]，排除离群值",
+      "already_exists": true
+    },
+    {
+      "name": "products.stock 范围",
+      "type": "range",
+      "severity": "P2",
+      "column": "stock",
+      "min": -5,
+      "max": 564,
+      "design_basis": "按 1%/99% 分位放宽到 [-5, 564]，排除离群值",
+      "already_exists": true
+    },
+    {
+      "name": "users.id 非空",
+      "type": "not_null",
+      "severity": "P0",
+      "column": "id",
+      "design_basis": "主键/业务键不能为空",
+      "already_exists": true
+    },
+    {
+      "name": "users.id 唯一",
+      "type": "unique",
+      "severity": "P0",
+      "columns": [
+        "id"
+      ],
+      "design_basis": "主键/业务键不能重复",
+      "already_exists": true
+    },
+    {
+      "name": "users.phone 手机号格式",
+      "type": "regex",
+      "severity": "P1",
+      "column": "phone",
+      "pattern": "^1[3-9]\\d{9}$",
+      "design_basis": "中国大陆手机号 11 位，1 开头",
+      "already_exists": true
+    },
+    {
+      "name": "users.email 邮箱格式",
+      "type": "regex",
+      "severity": "P1",
+      "column": "email",
+      "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+      "design_basis": "邮箱需含 @ 与域名后缀",
+      "already_exists": true
+    },
+    {
+      "name": "users.signup_date 非空",
+      "type": "not_null",
+      "severity": "P1",
+      "column": "signup_date",
+      "design_basis": "时间字段不应为空",
+      "already_exists": false
+    },
+    {
+      "name": "users.signup_date 新鲜度（7 天）",
+      "type": "freshness",
+      "severity": "P1",
+      "column": "signup_date",
+      "max_age_days": 7,
+      "design_basis": "分区数据不应超过 7 天未更新",
+      "already_exists": false
+    },
+    {
+      "name": "users.city 枚举",
+      "type": "enum",
+      "severity": "P2",
+      "column": "city",
+      "values": [
+        "上海",
+        "北京",
+        "广州",
+        "杭州",
+        "深圳",
+        "火星"
+      ],
+      "design_basis": "当前取值 6 种，适合做枚举白名单",
+      "already_exists": true
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+name: dq-gate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  data-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 生成演示库（含 20 类脏数据）
+        run: python scripts/dq.py init
+      - name: 数据质量门禁（P0 阻断）
+        run: python scripts/dq.py check --fail-on P0

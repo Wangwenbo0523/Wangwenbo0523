@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# 运行时生成物
+data/*.db
+data/*.duckdb
+data/history.jsonl
+data/feedback.json
+reports/latest.json
+
+# 本地环境
+.env
+.DS_Store

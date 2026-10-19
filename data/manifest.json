@@ -1,0 +1,119 @@
+{
+  "issues": [
+    {
+      "table": "users",
+      "rowid": 201,
+      "issue": "id 为空"
+    },
+    {
+      "table": "users",
+      "rowid": 5,
+      "issue": "id 重复（原行）"
+    },
+    {
+      "table": "users",
+      "rowid": 202,
+      "issue": "id 重复（副本）"
+    },
+    {
+      "table": "users",
+      "rowid": 7,
+      "issue": "手机号格式错误"
+    },
+    {
+      "table": "users",
+      "rowid": 9,
+      "issue": "邮箱格式错误"
+    },
+    {
+      "table": "users",
+      "rowid": 11,
+      "issue": "注册日期在未来"
+    },
+    {
+      "table": "users",
+      "rowid": 13,
+      "issue": "城市不在枚举内"
+    },
+    {
+      "table": "users",
+      "rowid": 15,
+      "issue": "姓名为空"
+    },
+    {
+      "table": "products",
+      "rowid": 2,
+      "issue": "价格为负"
+    },
+    {
+      "table": "products",
+      "rowid": 4,
+      "issue": "价格为空"
+    },
+    {
+      "table": "products",
+      "rowid": 6,
+      "issue": "库存为负"
+    },
+    {
+      "table": "products",
+      "rowid": 8,
+      "issue": "类目不在枚举内"
+    },
+    {
+      "table": "products",
+      "rowid": 10,
+      "issue": "id 重复（原行）"
+    },
+    {
+      "table": "products",
+      "rowid": 51,
+      "issue": "id 重复（副本）"
+    },
+    {
+      "table": "orders",
+      "rowid": 5,
+      "issue": "user_id 孤儿外键"
+    },
+    {
+      "table": "orders",
+      "rowid": 8,
+      "issue": "product_id 孤儿外键"
+    },
+    {
+      "table": "orders",
+      "rowid": 11,
+      "issue": "数量为 0"
+    },
+    {
+      "table": "orders",
+      "rowid": 14,
+      "issue": "金额与数量×单价不一致"
+    },
+    {
+      "table": "orders",
+      "rowid": 17,
+      "issue": "状态不在枚举内"
+    },
+    {
+      "table": "orders",
+      "rowid": 20,
+      "issue": "创建时间为空"
+    },
+    {
+      "table": "orders",
+      "rowid": 23,
+      "issue": "分区数据延迟（>7 天）"
+    },
+    {
+      "table": "orders",
+      "rowid": 26,
+      "issue": "id 重复（原行）"
+    },
+    {
+      "table": "orders",
+      "rowid": 801,
+      "issue": "id 重复（副本）"
+    }
+  ]
+}

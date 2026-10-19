@@ -1,0 +1,156 @@
+{
+  "users": [
+    {
+      "name": "users.id 非空",
+      "type": "not_null",
+      "column": "id",
+      "severity": "P0"
+    },
+    {
+      "name": "users.id 唯一",
+      "type": "unique",
+      "columns": ["id"],
+      "severity": "P0"
+    },
+    {
+      "name": "users.phone 手机号格式",
+      "type": "regex",
+      "column": "phone",
+      "pattern": "^1[3-9]\\d{9}$",
+      "severity": "P1"
+    },
+    {
+      "name": "users.email 邮箱格式",
+      "type": "regex",
+      "column": "email",
+      "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+      "severity": "P1"
+    },
+    {
+      "name": "users.signup_date 不晚于今天",
+      "type": "expression",
+      "violation_sql": "SELECT rowid FROM users WHERE signup_date > date('now','localtime')",
+      "severity": "P1"
+    },
+    {
+      "name": "users.city 枚举",
+      "type": "enum",
+      "column": "city",
+      "values": ["北京", "上海", "广州", "深圳", "杭州"],
+      "severity": "P2"
+    },
+    {
+      "name": "users.name 非空",
+      "type": "not_null",
+      "column": "name",
+      "severity": "P2"
+    }
+  ],
+  "products": [
+    {
+      "name": "products.id 非空",
+      "type": "not_null",
+      "column": "id",
+      "severity": "P0"
+    },
+    {
+      "name": "products.id 唯一",
+      "type": "unique",
+      "columns": ["id"],
+      "severity": "P0"
+    },
+    {
+      "name": "products.price 非空",
+      "type": "not_null",
+      "column": "price",
+      "severity": "P1"
+    },
+    {
+      "name": "products.price 范围",
+      "type": "range",
+      "column": "price",
+      "min": 0,
+      "max": 100000,
+      "severity": "P1"
+    },
+    {
+      "name": "products.stock 范围",
+      "type": "range",
+      "column": "stock",
+      "min": 0,
+      "max": 1000000,
+      "severity": "P2"
+    },
+    {
+      "name": "products.category 枚举",
+      "type": "enum",
+      "column": "category",
+      "values": ["数码", "家电", "服饰", "食品"],
+      "severity": "P2"
+    }
+  ],
+  "orders": [
+    {
+      "name": "orders.id 非空",
+      "type": "not_null",
+      "column": "id",
+      "severity": "P0"
+    },
+    {
+      "name": "orders.id 唯一",
+      "type": "unique",
+      "columns": ["id"],
+      "severity": "P0"
+    },
+    {
+      "name": "orders.user_id 外键",
+      "type": "foreign_key",
+      "column": "user_id",
+      "ref_table": "users",
+      "ref_column": "id",
+      "severity": "P0"
+    },
+    {
+      "name": "orders.product_id 外键",
+      "type": "foreign_key",
+      "column": "product_id",
+      "ref_table": "products",
+      "ref_column": "id",
+      "severity": "P0"
+    },
+    {
+      "name": "orders.qty 范围",
+      "type": "range",
+      "column": "qty",
+      "min": 1,
+      "max": 1000,
+      "severity": "P1"
+    },
+    {
+      "name": "orders.status 枚举",
+      "type": "enum",
+      "column": "status",
+      "values": ["待支付", "已支付", "已发货", "已完成"],
+      "severity": "P1"
+    },
+    {
+      "name": "orders.created_at 非空",
+      "type": "not_null",
+      "column": "created_at",
+      "severity": "P1"
+    },
+    {
+      "name": "orders.created_at 新鲜度（7 天）",
+      "type": "freshness",
+      "column": "created_at",
+      "max_age_days": 7,
+      "severity": "P1"
+    },
+    {
+      "name": "orders.amount 与 qty×price 一致",
+      "type": "expression",
+      "violation_sql": "SELECT o.rowid FROM orders o WHERE o.unit_price IS NOT NULL AND ABS(o.amount - o.qty * o.unit_price) > 0.01",
+      "severity": "P0"
+    }
+  ]
+}
