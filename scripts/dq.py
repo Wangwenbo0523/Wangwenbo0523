@@ -630,11 +630,14 @@ def llm_refine(candidates):
 
 
 # ---------------------------------------------------------------- commands
-def cmd_init(_args):
+def cmd_init(args):
     import make_demo
-    db, gt, manifest = make_demo.build()
+    db, gt, manifest = make_demo.build(dirty=not getattr(args, "clean", False))
     print(f"已生成演示库：{db}")
-    print(f"注入问题：{len(manifest)} 条（ground truth 已写入 {GT}）")
+    if manifest:
+        print(f"注入问题：{len(manifest)} 条（ground truth 已写入 {GT}）")
+    else:
+        print("干净数据：未注入脏数据（用于 CI 门禁基线）")
 
 
 def cmd_check(args):
@@ -744,7 +747,9 @@ def main():
     parser = argparse.ArgumentParser(description="数据质量巡检 Agent Skill")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("init").set_defaults(func=cmd_init)
+    p_init = sub.add_parser("init")
+    p_init.add_argument("--clean", action="store_true", help="不注入脏数据（CI 基线）")
+    p_init.set_defaults(func=cmd_init)
 
     p_check = sub.add_parser("check")
     p_check.add_argument("--fail-on", choices=["P0", "P1", "P2"], default=None,

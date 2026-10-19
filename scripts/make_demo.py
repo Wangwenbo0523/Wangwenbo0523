@@ -174,7 +174,7 @@ def inject(c, gt):
     return manifest
 
 
-def build(db=DB, gt_path=GT, manifest_path=MANIFEST):
+def build(db=DB, gt_path=GT, manifest_path=MANIFEST, dirty=True):
     os.makedirs(os.path.dirname(db), exist_ok=True)
     if os.path.exists(db):
         os.remove(db)
@@ -183,8 +183,8 @@ def build(db=DB, gt_path=GT, manifest_path=MANIFEST):
         create_schema(conn)
         seed_clean(conn)
         gt, manifest = [], []
-        # 注入器需要同时写 gt，这里用闭包包装
-        manifest = inject(conn, gt)
+        if dirty:
+            manifest = inject(conn, gt)
         conn.commit()
     finally:
         conn.close()

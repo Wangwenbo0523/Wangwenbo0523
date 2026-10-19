@@ -18,6 +18,7 @@ description: 数据质量巡检与治理 skill。对 SQLite 数据表做自动�
 
 ```bash
 python scripts/dq.py demo                              # 生成演示库 + 巡检 + 评测 + 报告
+python scripts/dq.py init --clean                      # 干净库（CI 门禁基线）
 python scripts/dq.py profile                           # 输出表结构与字段分布画像
 python scripts/dq.py check                             # 按 rules/rules.json 巡检并写报告
 python scripts/dq.py check --fail-on P0                # CI 门禁：P0 违规时退出码 1

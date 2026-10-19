@@ -42,6 +42,7 @@ python scripts/dq.py demo
 | 命令 | 作用 |
 | --- | --- |
 | `python scripts/dq.py init` | 生成演示库（含 20 类脏数据与 ground truth） |
+| `python scripts/dq.py init --clean` | 生成干净演示库（CI 门禁基线） |
 | `python scripts/dq.py profile` | 输出表结构、空值率、枚举分布 |
 | `python scripts/dq.py check` | 按 `rules/rules.json` 巡检并写报告 |
 | `python scripts/dq.py check --fail-on P0` | CI 门禁：P0 违规时退出码 1 |
@@ -102,6 +103,8 @@ python scripts/dq.py check --fail-on P0
 ```
 
 P0 违规时退出码为 1，可直接接在发布流水线里（示例见 `.github/workflows/dq-gate.yml`）。
+
+CI 里用 `init --clean` 生成无脏数据的基线库，否则演示库的“故意注入”会让门禁一直失败。
 
 ### 候选规则
 
