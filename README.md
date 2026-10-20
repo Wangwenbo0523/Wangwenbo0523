@@ -46,6 +46,8 @@ python scripts/dq.py demo
 | `python scripts/dq.py profile` | 输出表结构、空值率、枚举分布 |
 | `python scripts/dq.py check` | 按 `rules/rules.json` 巡检并写报告 |
 | `python scripts/dq.py check --fail-on P0` | CI 门禁：P0 违规时退出码 1 |
+| `python scripts/make_demo_duck.py` | 生成 DuckDB 演示库（需 `pip install duckdb`） |
+| `python scripts/dq.py check --db data/demo.duckdb` | 在 DuckDB 上跑同一套规则 |
 | `python scripts/dq.py evaluate` | 与 ground truth 对比，算检出率 / 误报率 |
 | `python scripts/dq.py mark --table users --rowid 7 --rule "users.phone 手机号格式" --reason "测试账号"` | 标注误报，下轮自动抑制 |
 | `python scripts/dq.py unmark --table users --rowid 7` | 取消误报标注 |
@@ -115,6 +117,17 @@ python scripts/dq.py suggest --llm  # 配置了 DQ_LLM_BASE 时调用 LLM 润色
 
 输出 `rules/candidates.json`，`already_exists` 标出已被现有规则覆盖的项，人工确认后合并进 `rules.json`。
 
+### DuckDB
+
+```bash
+pip install duckdb
+python scripts/make_demo_duck.py
+python scripts/dq.py check --db data/demo.duckdb
+```
+
+同一套 `rules.json`、同一套指标：22 条规则、17/17 关键字段、检出率 100%、误报率 0%。
+DuckDB 的 rowid 从 0 开始且与 sqlite 不通用，演示库用 `__dq_rid__` 对齐 ground truth。
+
 ## 3 分钟演示脚本
 
 1. **背景**：数据入仓前靠人工抽查，漏报和误报都说不清
@@ -129,7 +142,8 @@ python scripts/dq.py suggest --llm  # 配置了 DQ_LLM_BASE 时调用 LLM 润色
 - [x] 候选规则生成（启发式 + 可选 LLM 润色）
 - [x] 规则覆盖率指标（关键字段覆盖）
 - [x] 历史趋势（`history.jsonl` + `history` 命令）
-- [ ] DuckDB / Spark 适配（SQL 下推）
+- [x] DuckDB 后端适配（同一套规则与指标）
+- [ ] Spark 适配（SQL 下推）
 - [ ] 整行重复、空值聚集等扩展规则
 - [ ] HTML 报告与趋势图
 
@@ -141,7 +155,7 @@ dq-sentinel/
 ├── README.md
 ├── rules/rules.json
 ├── references/rule-catalog.md
-├── scripts/{dq.py, make_demo.py}
+├── scripts/{dq.py, make_demo.py, make_demo_duck.py}
 ├── data/{demo.db, ground_truth.json, manifest.json}
 ├── reports/{latest.md, latest.json}
 └── tests/test_smoke.py

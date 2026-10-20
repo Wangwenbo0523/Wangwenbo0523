@@ -12,9 +12,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: 安装可选依赖（DuckDB）
+        run: pip install duckdb
       - name: 生成干净演示库（CI 基线）
         run: python scripts/dq.py init --clean
       - name: 数据质量门禁（P0 阻断）
         run: python scripts/dq.py check --fail-on P0
-      - name: 冒烟测试
+      - name: 冒烟测试（含 DuckDB 后端）
         run: python tests/test_smoke.py

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""冒烟测试：演示库、巡检指标、误报标注、CI 门禁、候选规则。"""
+"""冒烟测试：演示库、巡检指标、误报标注、CI 门禁、候选规则、DuckDB 后端。"""
+import importlib.util
 import os
 import subprocess
 import sys
@@ -11,14 +12,21 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import dq  # noqa: E402
 import make_demo  # noqa: E402
 
+HAS_DUCKDB = importlib.util.find_spec("duckdb") is not None
+
 
 class DemoSentinelTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         make_demo.build()
 
+    def _conn(self, db=dq.DB):
+        conn = dq.connect(db)
+        self.addCleanup(conn.close)
+        return conn
+
     def test_demo_metrics(self):
-        conn = dq.connect()
+        conn = self._conn()
         results = dq.run_all(conn)
         metrics = dq.evaluate(results)
         self.assertGreaterEqual(metrics["recall"], 0.95, "检出率过低")
@@ -26,7 +34,7 @@ class DemoSentinelTest(unittest.TestCase):
         self.assertEqual(len(results), 22, "规则数量应为 22")
 
     def test_report_written(self):
-        conn = dq.connect()
+        conn = self._conn()
         results = dq.run_all(conn)
         metrics = dq.evaluate(results)
         path = dq.write_report(results, metrics)
@@ -35,7 +43,7 @@ class DemoSentinelTest(unittest.TestCase):
             self.assertIn("数据质量巡检报告", f.read())
 
     def test_feedback_suppression(self):
-        conn = dq.connect()
+        conn = self._conn()
         fb = dq.load_feedback()
         original = list(fb.get("records", []))
         rule_name = "users.phone 手机号格式"
@@ -60,11 +68,22 @@ class DemoSentinelTest(unittest.TestCase):
         self.assertIn("门禁未通过", proc.stdout)
 
     def test_suggest_rules(self):
-        conn = dq.connect()
+        conn = self._conn()
         candidates = dq.suggest_rules(conn)
         self.assertGreater(len(candidates), 10, "候选规则过少")
         types = {c["type"] for c in candidates}
         self.assertTrue({"not_null", "unique", "foreign_key"} <= types)
+
+    @unittest.skipUnless(HAS_DUCKDB, "需要 duckdb（pip install duckdb）")
+    def test_duckdb_backend(self):
+        import make_demo_duck
+        db = make_demo_duck.build(dirty=True)
+        conn = self._conn(db)
+        results = dq.run_all(conn)
+        metrics = dq.evaluate(results)
+        self.assertEqual(len(results), 22)
+        self.assertEqual(metrics["recall"], 1.0)
+        self.assertEqual(metrics["precision"], 1.0)
 
 
 if __name__ == "__main__":

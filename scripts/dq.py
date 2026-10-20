@@ -46,17 +46,17 @@ def connect(db=DB):
 
 
 def is_duckdb(conn):
-    return conn.__class__.__module__.split(".")[0] == "duckdb"
+    return conn.__class__.__module__.split(".")[0] in ("duckdb", "_duckdb")
 
 
 def list_tables(conn):
     if is_duckdb(conn):
         return [r[0] for r in conn.execute(
             "SELECT table_name FROM information_schema.tables WHERE table_schema='main' ORDER BY table_name"
-        )]
+        ).fetchall()]
     return [r[0] for r in conn.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
-    )]
+    ).fetchall()]
 
 
 def load_rules():
@@ -88,13 +88,23 @@ def is_suppressed(table, rowid, rule, fb):
     return False
 
 
+def _rows(cur):
+    """把游标结果转成 dict 列表（兼容 sqlite3.Row 与 duckdb tuple）。"""
+    names = [d[0] for d in cur.description]
+    return [dict(zip(names, row)) for row in cur.fetchall()]
+
+
+def _columns(conn, table):
+    return _rows(conn.execute(f"PRAGMA table_info('{table}')"))
+
+
 def table_rows(conn, table):
     if is_duckdb(conn):
-        cols = [r[1] for r in conn.execute(f"PRAGMA table_info('{table}')")]
+        cols = [c["name"] for c in _columns(conn, table)]
         sel = "__dq_rid__ AS __rowid__, *" if "__dq_rid__" in cols else "rowid AS __rowid__, *"
     else:
         sel = "rowid AS __rowid__, *"
-    return [dict(r) for r in conn.execute(f"SELECT {sel} FROM {table}")]
+    return _rows(conn.execute(f"SELECT {sel} FROM {table}"))
 
 
 def check_rule(conn, table, rule):
@@ -153,7 +163,7 @@ def check_rule(conn, table, rule):
     elif t == "foreign_key":
         ref_table = rule["ref_table"]
         ref_col = rule.get("ref_column", "id")
-        valid = {r[0] for r in conn.execute(f"SELECT {ref_col} FROM {ref_table}")}
+        valid = {r[0] for r in conn.execute(f"SELECT {ref_col} FROM {ref_table}").fetchall()}
         for r in rows:
             v = r.get(col)
             if v is None:
@@ -172,7 +182,15 @@ def check_rule(conn, table, rule):
                 bad.append(r)
 
     elif t == "expression":
-        bad_ids = {r[0] for r in conn.execute(rule["violation_sql"])}
+        sql = rule["violation_sql"]
+        if is_duckdb(conn):
+            sql = sql.replace("date('now','localtime')", "CAST(current_date AS VARCHAR)")
+        ids = [r[0] for r in conn.execute(sql).fetchall()]
+        if is_duckdb(conn) and rows and "__dq_rid__" in rows[0]:
+            mapping = dict(conn.execute(f"SELECT rowid, __dq_rid__ FROM {table}").fetchall())
+            bad_ids = {mapping[i] for i in ids if i in mapping}
+        else:
+            bad_ids = set(ids)
         bad = [r for r in rows if r["__rowid__"] in bad_ids]
 
     else:
@@ -217,18 +235,18 @@ def run_all(conn, apply_feedback=True):
 def profile(conn):
     out = {}
     for table in list_tables(conn):
-        cols = [dict(r) for r in conn.execute(f"PRAGMA table_info('{table}')")]
+        cols = [c for c in _columns(conn, table) if not c["name"].startswith("__")]
         total = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
         col_stats = []
         for c in cols:
             name = c["name"]
             nulls = conn.execute(
-                f"SELECT COUNT(*) FROM {table} WHERE {name} IS NULL OR TRIM(CAST({name} AS TEXT))=''"
+                f"SELECT COUNT(*) FROM {table} WHERE {name} IS NULL OR TRIM(CAST({name} AS VARCHAR))=''"
             ).fetchone()[0]
             distinct = conn.execute(f"SELECT COUNT(DISTINCT {name}) FROM {table}").fetchone()[0]
             try:
                 mn, mx = conn.execute(f"SELECT MIN({name}), MAX({name}) FROM {table}").fetchone()
-            except sqlite3.Error:
+            except Exception:  # noqa: BLE001 - 不同后端异常类型不同
                 mn, mx = None, None
             top = conn.execute(
                 f"SELECT {name}, COUNT(*) c FROM {table} GROUP BY {name} ORDER BY c DESC LIMIT 3"
@@ -292,7 +310,7 @@ def _key_fields(conn):
     """关键字段：主键、外键、时间、电话/邮箱、数值、低基数文本。"""
     out = {}
     for table in list_tables(conn):
-        cols = [dict(c) for c in conn.execute(f"PRAGMA table_info('{table}')")]
+        cols = [c for c in _columns(conn, table) if not c["name"].startswith("__")]
         total = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
         keys = []
         for c in cols:
@@ -304,7 +322,8 @@ def _key_fields(conn):
                     or "phone" in low or "email" in low):
                 keys.append(name)
                 continue
-            if decl in ("REAL", "INTEGER", "NUMERIC", "FLOAT", "DOUBLE"):
+            if decl in ("REAL", "INTEGER", "NUMERIC", "FLOAT", "DOUBLE",
+                        "BIGINT", "SMALLINT", "TINYINT", "HUGEINT", "DECIMAL"):
                 keys.append(name)
                 continue
             if decl in ("TEXT", "STRING", "VARCHAR") and total:
@@ -321,7 +340,7 @@ def coverage(conn):
     rules = load_rules()
     covered = {}
     for table, items in rules.items():
-        cols = [r[1] for r in conn.execute(f"PRAGMA table_info('{table}')")]
+        cols = [c["name"] for c in _columns(conn, table)]
         cov = set()
         for r in items:
             if r.get("column"):
@@ -526,7 +545,7 @@ def suggest_rules(conn):
         candidates.append(rule)
 
     for table in tables:
-        cols = [dict(c) for c in conn.execute(f"PRAGMA table_info({table})")]
+        cols = [c for c in _columns(conn, table) if not c["name"].startswith("__")]
         total = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
         for c in cols:
             name = c["name"]
@@ -565,7 +584,8 @@ def suggest_rules(conn):
                           column=name, max_age_days=7), "分区数据不应超过 7 天未更新")
                 continue
 
-            if decl in ("REAL", "INTEGER", "NUMERIC", "FLOAT", "DOUBLE"):
+            if decl in ("REAL", "INTEGER", "NUMERIC", "FLOAT", "DOUBLE",
+                        "BIGINT", "SMALLINT", "TINYINT", "HUGEINT", "DECIMAL"):
                 q1 = _quantile(conn, table, name, 0.01)
                 q99 = _quantile(conn, table, name, 0.99)
                 if q1 is not None and q99 is not None and q99 > q1:
@@ -579,7 +599,7 @@ def suggest_rules(conn):
             if decl == "TEXT" and total:
                 vals = [r[0] for r in conn.execute(
                     f"SELECT DISTINCT {name} FROM {table} WHERE {name} IS NOT NULL"
-                )]
+                ).fetchall()]
                 if 0 < len(vals) <= 12:
                     vals = sorted(str(v) for v in vals)
                     add(_rule(table, f"{name} 枚举", "enum", "P2", column=name, values=vals),
@@ -641,11 +661,11 @@ def cmd_init(args):
 
 
 def cmd_check(args):
-    conn = connect()
+    conn = connect(args.db)
     results = run_all(conn)
     metrics = evaluate(results) if os.path.exists(GT) else None
     cov = coverage(conn)
-    path = write_report(results, metrics, cov)
+    path = write_report(results, metrics, cov, db_path=args.db)
     sev = severity_counts(results)
     total = sum(r["violations"] for r in results)
     print(f"规则 {len(results)} 条，违规 {total} 行（P0={sev['P0']} / P1={sev['P1']} / P2={sev['P2']}），"
@@ -662,13 +682,13 @@ def cmd_check(args):
     return 0
 
 
-def cmd_profile(_args):
-    conn = connect()
+def cmd_profile(args):
+    conn = connect(args.db)
     print(json.dumps(profile(conn), ensure_ascii=False, indent=2))
 
 
-def cmd_evaluate(_args):
-    conn = connect()
+def cmd_evaluate(args):
+    conn = connect(args.db)
     results = run_all(conn)
     print(json.dumps(evaluate(results), ensure_ascii=False, indent=2))
 
@@ -729,7 +749,7 @@ def cmd_unmark(args):
 
 
 def cmd_suggest(args):
-    conn = connect()
+    conn = connect(args.db)
     candidates = suggest_rules(conn)
     source = "heuristic"
     if args.llm:
@@ -752,12 +772,19 @@ def main():
     p_init.set_defaults(func=cmd_init)
 
     p_check = sub.add_parser("check")
+    p_check.add_argument("--db", default=DB, help="数据库路径（.duckdb 需安装 duckdb）")
     p_check.add_argument("--fail-on", choices=["P0", "P1", "P2"], default=None,
                          help="指定级别有违规时退出码 1（CI 门禁）")
     p_check.set_defaults(func=cmd_check)
 
-    sub.add_parser("profile").set_defaults(func=cmd_profile)
-    sub.add_parser("evaluate").set_defaults(func=cmd_evaluate)
+    p_profile = sub.add_parser("profile")
+    p_profile.add_argument("--db", default=DB)
+    p_profile.set_defaults(func=cmd_profile)
+
+    p_evaluate = sub.add_parser("evaluate")
+    p_evaluate.add_argument("--db", default=DB)
+    p_evaluate.set_defaults(func=cmd_evaluate)
+
     sub.add_parser("demo").set_defaults(func=cmd_demo)
     sub.add_parser("history").set_defaults(func=cmd_history)
 
@@ -775,6 +802,7 @@ def main():
     p_unmark.set_defaults(func=cmd_unmark)
 
     p_suggest = sub.add_parser("suggest", help="生成候选规则")
+    p_suggest.add_argument("--db", default=DB)
     p_suggest.add_argument("--llm", action="store_true", help="尝试调用 LLM 润色")
     p_suggest.set_defaults(func=cmd_suggest)
 

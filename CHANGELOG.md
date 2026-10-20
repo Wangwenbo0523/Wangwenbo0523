@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3 — 2026-10-20
+
+- 新增 **DuckDB 后端**：`make_demo_duck.py` 生成演示库，`check/profile/evaluate/suggest` 支持 `--db`
+- 兼容处理：DuckDB `rowid` 从 0 开始 → 用 `__dq_rid__` 对齐 ground truth；`date('now','localtime')` → `CAST(current_date AS VARCHAR)`
+- 测试新增 DuckDB 后端用例（6 条，CI 安装 duckdb 后执行）
+- 文档补充 DuckDB 用法
+
 ## v0.2 — 2026-10-20
 
 - 新增 **规则覆盖率**（关键字段覆盖，报告与 JSON 同步输出）

@@ -98,7 +98,7 @@ flowchart LR
 | 1 接入登记 | ✅ | `rules/rules.json` |
 | 2 自动剖析 | ✅ | `dq.py profile` |
 | 3 规则设计 | ✅ | `dq.py suggest`（候选）+ 人工评审 |
-| 4 执行巡检 | ✅ | `dq.py check` |
+| 4 执行巡检 | ✅ | `dq.py check`（支持 `--db`，sqlite / duckdb） |
 | 5 分级处置 | ✅ | `check --fail-on P0`、`mark` 误报标注 |
 | 6 修复与回归 | ✅ 半自动 | 修复后重跑 `check` |
 | 7 评测与复盘 | ✅ | `dq.py evaluate` + 报告第四节 |
