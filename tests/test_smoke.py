@@ -67,6 +67,17 @@ class DemoSentinelTest(unittest.TestCase):
         self.assertEqual(proc.returncode, 1, "存在 P0 违规时门禁应失败")
         self.assertIn("门禁未通过", proc.stdout)
 
+    def test_coverage_gate(self):
+        sev = {"P0": 0, "P1": 0, "P2": 0}
+        self.assertEqual(dq.gate_exit(sev, {"rate": 0.5}, None, 0.8), 1, "覆盖率不达标应失败")
+        self.assertEqual(dq.gate_exit(sev, {"rate": 0.9}, None, 0.8), 0, "覆盖率达标应通过")
+        proc = subprocess.run(
+            [sys.executable, os.path.join(ROOT, "scripts", "dq.py"),
+             "check", "--min-coverage", "0.99"],
+            cwd=ROOT, capture_output=True, text=True,
+        )
+        self.assertEqual(proc.returncode, 0, "当前覆盖率 100% 应通过 0.99 阈值")
+
     def test_suggest_rules(self):
         conn = self._conn()
         candidates = dq.suggest_rules(conn)

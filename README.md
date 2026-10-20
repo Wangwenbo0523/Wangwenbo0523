@@ -46,6 +46,7 @@ python scripts/dq.py demo
 | `python scripts/dq.py profile` | 输出表结构、空值率、枚举分布 |
 | `python scripts/dq.py check` | 按 `rules/rules.json` 巡检并写报告 |
 | `python scripts/dq.py check --fail-on P0` | CI 门禁：P0 违规时退出码 1 |
+| `python scripts/dq.py check --min-coverage 0.8` | 覆盖率门禁：低于 80% 退出码 1 |
 | `python scripts/make_demo_duck.py` | 生成 DuckDB 演示库（需 `pip install duckdb`） |
 | `python scripts/dq.py check --db data/demo.duckdb` | 在 DuckDB 上跑同一套规则 |
 | `python scripts/dq.py evaluate` | 与 ground truth 对比，算检出率 / 误报率 |
@@ -108,6 +109,8 @@ P0 违规时退出码为 1，可直接接在发布流水线里（示例见 `.git
 
 CI 里用 `init --clean` 生成无脏数据的基线库，否则演示库的“故意注入”会让门禁一直失败。
 
+覆盖率也可以做门禁：`check --min-coverage 0.8`，关键字段覆盖不足 80% 时同样阻断。
+
 ### 候选规则
 
 ```bash
@@ -143,6 +146,7 @@ DuckDB 的 rowid 从 0 开始且与 sqlite 不通用，演示库用 `__dq_rid__`
 - [x] 规则覆盖率指标（关键字段覆盖）
 - [x] 历史趋势（`history.jsonl` + `history` 命令）
 - [x] DuckDB 后端适配（同一套规则与指标）
+- [x] 覆盖率门禁（`--min-coverage`）
 - [ ] Spark 适配（SQL 下推）
 - [ ] 整行重复、空值聚集等扩展规则
 - [ ] HTML 报告与趋势图

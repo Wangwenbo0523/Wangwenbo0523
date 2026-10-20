@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.4 — 2026-10-20
+
+- 新增 **覆盖率门禁** `--min-coverage`（0–1），低于阈值退出码 1
+- `gate_exit()` 统一 P0 与覆盖率判定，CI 使用 `--fail-on P0 --min-coverage 0.8`
+- 测试新增覆盖率门禁用例（7 条）
+
 ## v0.3 — 2026-10-20
 
 - 新增 **DuckDB 后端**：`make_demo_duck.py` 生成演示库，`check/profile/evaluate/suggest` 支持 `--db`

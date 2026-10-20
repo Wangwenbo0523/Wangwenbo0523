@@ -24,6 +24,7 @@ python scripts/dq.py check --db data/demo.duckdb       # 在 DuckDB 上跑同一
 python scripts/dq.py profile                           # 输出表结构与字段分布画像
 python scripts/dq.py check                             # 按 rules/rules.json 巡检并写报告
 python scripts/dq.py check --fail-on P0                # CI 门禁：P0 违规时退出码 1
+python scripts/dq.py check --min-coverage 0.8          # 覆盖率门禁：低于 80% 退出码 1
 python scripts/dq.py evaluate                          # 与 ground truth 对比，算检出率 / 误报率
 python scripts/dq.py mark --table users --rowid 7 \
   --rule "users.phone 手机号格式" --reason "测试账号"    # 标注误报（下轮巡检自动抑制）

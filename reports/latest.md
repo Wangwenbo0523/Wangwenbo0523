@@ -1,6 +1,6 @@
 # 数据质量巡检报告
 
-- 生成时间：2026-10-20 08:03:52
+- 生成时间：2026-10-20 08:05:29
 - 数据库：`C:\Users\雷神\Desktop\dq-sentinel\data\demo.db`
 - 规则数：22
 - 已标注误报（抑制）：0 条
@@ -125,32 +125,32 @@
 
 | rowid | 值 |
 | --- | --- |
-| 26 | id=10025, user_id=78, product_id=128, qty=1, unit_price=1371.68, amount=1371.68, status=已完成, created_at=2026-10-16 10:03:52 |
-| 801 | id=10025, user_id=78, product_id=128, qty=1, unit_price=1371.68, amount=1371.68, status=已完成, created_at=2026-10-16 10:03:52 |
+| 26 | id=10025, user_id=78, product_id=128, qty=1, unit_price=1371.68, amount=1371.68, status=已完成, created_at=2026-10-16 10:05:29 |
+| 801 | id=10025, user_id=78, product_id=128, qty=1, unit_price=1371.68, amount=1371.68, status=已完成, created_at=2026-10-16 10:05:29 |
 
 ### orders.user_id 外键
 
 | rowid | 值 |
 | --- | --- |
-| 5 | id=10004, user_id=99999, product_id=120, qty=1, unit_price=519.92, amount=519.92, status=已支付, created_at=2026-10-14 15:03:52 |
+| 5 | id=10004, user_id=99999, product_id=120, qty=1, unit_price=519.92, amount=519.92, status=已支付, created_at=2026-10-14 15:05:29 |
 
 ### orders.product_id 外键
 
 | rowid | 值 |
 | --- | --- |
-| 8 | id=10007, user_id=33, product_id=88888, qty=1, unit_price=1896.04, amount=1896.04, status=已发货, created_at=2026-10-14 15:03:52 |
+| 8 | id=10007, user_id=33, product_id=88888, qty=1, unit_price=1896.04, amount=1896.04, status=已发货, created_at=2026-10-14 15:05:29 |
 
 ### orders.qty 范围
 
 | rowid | 值 |
 | --- | --- |
-| 11 | id=10010, user_id=48, product_id=130, qty=0, unit_price=1070.16, amount=4280.64, status=待支付, created_at=2026-10-16 22:03:52 |
+| 11 | id=10010, user_id=48, product_id=130, qty=0, unit_price=1070.16, amount=4280.64, status=待支付, created_at=2026-10-16 22:05:29 |
 
 ### orders.status 枚举
 
 | rowid | 值 |
 | --- | --- |
-| 17 | id=10016, user_id=159, product_id=137, qty=4, unit_price=1618.32, amount=6473.28, status=未知状态, created_at=2026-10-17 14:03:52 |
+| 17 | id=10016, user_id=159, product_id=137, qty=4, unit_price=1618.32, amount=6473.28, status=未知状态, created_at=2026-10-17 14:05:29 |
 
 ### orders.created_at 非空
 
@@ -162,14 +162,14 @@
 
 | rowid | 值 |
 | --- | --- |
-| 23 | id=10022, user_id=109, product_id=140, qty=5, unit_price=1764.45, amount=8822.25, status=待支付, created_at=2026-10-10 08:03:52 |
+| 23 | id=10022, user_id=109, product_id=140, qty=5, unit_price=1764.45, amount=8822.25, status=待支付, created_at=2026-10-10 08:05:29 |
 
 ### orders.amount 与 qty×price 一致
 
 | rowid | 值 |
 | --- | --- |
-| 11 | id=10010, user_id=48, product_id=130, qty=0, unit_price=1070.16, amount=4280.64, status=待支付, created_at=2026-10-16 22:03:52 |
-| 14 | id=10013, user_id=64, product_id=109, qty=5, unit_price=764.42, amount=3827.1, status=待支付, created_at=2026-10-18 06:03:52 |
+| 11 | id=10010, user_id=48, product_id=130, qty=0, unit_price=1070.16, amount=4280.64, status=待支付, created_at=2026-10-16 22:05:29 |
+| 14 | id=10013, user_id=64, product_id=109, qty=5, unit_price=764.42, amount=3827.1, status=待支付, created_at=2026-10-18 06:05:29 |
 
 ## 四、评测（与 ground truth 对比）
 

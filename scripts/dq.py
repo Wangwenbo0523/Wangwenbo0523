@@ -306,6 +306,16 @@ def severity_counts(results):
     return counts
 
 
+def gate_exit(sev, cov, fail_on=None, min_coverage=None):
+    """返回门禁退出码：P0 违规或覆盖率不达标 → 1。"""
+    code = 0
+    if fail_on in SEVERITY_ORDER and sev.get(fail_on, 0) > 0:
+        code = 1
+    if min_coverage is not None and cov and cov["rate"] < min_coverage:
+        code = 1
+    return code
+
+
 def _key_fields(conn):
     """关键字段：主键、外键、时间、电话/邮箱、数值、低基数文本。"""
     out = {}
@@ -661,6 +671,9 @@ def cmd_init(args):
 
 
 def cmd_check(args):
+    if args.min_coverage is not None and not (0 <= args.min_coverage <= 1):
+        print("::error::--min-coverage 需在 0~1 之间")
+        return 2
     conn = connect(args.db)
     results = run_all(conn)
     metrics = evaluate(results) if os.path.exists(GT) else None
@@ -676,10 +689,12 @@ def cmd_check(args):
     print(f"报告：{path}")
 
     fail_on = args.fail_on
+    min_cov = args.min_coverage
     if fail_on in SEVERITY_ORDER and sev.get(fail_on, 0) > 0:
         print(f"::error::{fail_on} 违规 {sev[fail_on]} 条，门禁未通过")
-        return 1
-    return 0
+    if min_cov is not None and cov["rate"] < min_cov:
+        print(f"::error::规则覆盖率 {cov['rate']*100:.1f}% 低于阈值 {min_cov*100:.1f}%")
+    return gate_exit(sev, cov, fail_on, min_cov)
 
 
 def cmd_profile(args):
@@ -775,6 +790,8 @@ def main():
     p_check.add_argument("--db", default=DB, help="数据库路径（.duckdb 需安装 duckdb）")
     p_check.add_argument("--fail-on", choices=["P0", "P1", "P2"], default=None,
                          help="指定级别有违规时退出码 1（CI 门禁）")
+    p_check.add_argument("--min-coverage", type=float, default=None,
+                         help="规则覆盖率阈值（0-1），低于阈值时退出码 1")
     p_check.set_defaults(func=cmd_check)
 
     p_profile = sub.add_parser("profile")
