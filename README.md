@@ -123,6 +123,8 @@ python scripts/dq.py suggest --llm  # 配置了 DQ_LLM_BASE 时调用 LLM 润色
 
 输出 `rules/candidates.json`，`already_exists` 标出已被现有规则覆盖的项，人工确认后合并进 `rules.json`。
 
+LLM 联调结论见 [docs/llm-compare.md](docs/llm-compare.md)：LLM 补充了 6 条有价值的“业务常识”规则（手机号/邮箱唯一、价格/库存非负等），但也踩了 3 个坑（枚举被脏数据污染、数据分布当业务边界、注册日期套新鲜度规则）。
+
 ### DuckDB
 
 ```bash

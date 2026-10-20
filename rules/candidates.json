@@ -1,5 +1,5 @@
 {
-  "source": "heuristic",
+  "source": "llm",
   "candidates": [
     {
       "name": "orders.id 非空",
@@ -40,6 +40,22 @@
       "already_exists": true
     },
     {
+      "name": "orders.user_id 非空",
+      "type": "not_null",
+      "severity": "P0",
+      "column": "user_id",
+      "design_basis": "外键字段不应为空，否则无法关联用户",
+      "already_exists": false
+    },
+    {
+      "name": "orders.product_id 非空",
+      "type": "not_null",
+      "severity": "P0",
+      "column": "product_id",
+      "design_basis": "外键字段不应为空，否则无法关联商品",
+      "already_exists": false
+    },
+    {
       "name": "orders.qty 范围",
       "type": "range",
       "severity": "P2",
@@ -50,13 +66,33 @@
       "already_exists": true
     },
     {
+      "name": "orders.qty 非负",
+      "type": "range",
+      "severity": "P1",
+      "column": "qty",
+      "min": 1,
+      "max": null,
+      "design_basis": "购买数量应为正整数，至少为 1",
+      "already_exists": false
+    },
+    {
       "name": "orders.unit_price 范围",
       "type": "range",
       "severity": "P2",
       "column": "unit_price",
       "min": 0,
-      "max": 2362,
-      "design_basis": "按 1%/99% 分位放宽到 [0, 2362]，排除离群值",
+      "max": 2234,
+      "design_basis": "按 1%/99% 分位放宽到 [0, 2234]，排除离群值",
+      "already_exists": false
+    },
+    {
+      "name": "orders.unit_price 非负",
+      "type": "range",
+      "severity": "P1",
+      "column": "unit_price",
+      "min": 0,
+      "max": null,
+      "design_basis": "单价不应为负数",
       "already_exists": false
     },
     {
@@ -65,8 +101,18 @@
       "severity": "P2",
       "column": "amount",
       "min": 0,
-      "max": 11302,
-      "design_basis": "按 1%/99% 分位放宽到 [0, 11302]，排除离群值",
+      "max": 9712,
+      "design_basis": "按 1%/99% 分位放宽到 [0, 9712]，排除离群值",
+      "already_exists": false
+    },
+    {
+      "name": "orders.amount 非负",
+      "type": "range",
+      "severity": "P1",
+      "column": "amount",
+      "min": 0,
+      "max": null,
+      "design_basis": "订单金额不应为负数",
       "already_exists": false
     },
     {
@@ -85,6 +131,14 @@
       "already_exists": true
     },
     {
+      "name": "orders.status 非空",
+      "type": "not_null",
+      "severity": "P1",
+      "column": "status",
+      "design_basis": "订单状态不应为空",
+      "already_exists": false
+    },
+    {
       "name": "orders.created_at 非空",
       "type": "not_null",
       "severity": "P1",
@@ -100,6 +154,16 @@
       "max_age_days": 7,
       "design_basis": "分区数据不应超过 7 天未更新",
       "already_exists": true
+    },
+    {
+      "name": "orders.created_at 不晚于当前时间",
+      "type": "range",
+      "severity": "P1",
+      "column": "created_at",
+      "min": null,
+      "max": "now()",
+      "design_basis": "创建时间不应晚于当前时间",
+      "already_exists": false
     },
     {
       "name": "products.id 非空",
@@ -135,14 +199,32 @@
       "already_exists": true
     },
     {
+      "name": "products.category 非空",
+      "type": "not_null",
+      "severity": "P1",
+      "column": "category",
+      "design_basis": "商品分类不应为空",
+      "already_exists": false
+    },
+    {
       "name": "products.price 范围",
       "type": "range",
       "severity": "P2",
       "column": "price",
       "min": -10,
-      "max": 2298,
-      "design_basis": "按 1%/99% 分位放宽到 [-10, 2298]，排除离群值",
+      "max": 2159,
+      "design_basis": "按 1%/99% 分位放宽到 [-10, 2159]，排除离群值",
       "already_exists": true
+    },
+    {
+      "name": "products.price 非负",
+      "type": "range",
+      "severity": "P1",
+      "column": "price",
+      "min": 0,
+      "max": null,
+      "design_basis": "商品价格不应为负数",
+      "already_exists": false
     },
     {
       "name": "products.stock 范围",
@@ -150,9 +232,19 @@
       "severity": "P2",
       "column": "stock",
       "min": -5,
-      "max": 564,
-      "design_basis": "按 1%/99% 分位放宽到 [-5, 564]，排除离群值",
+      "max": 582,
+      "design_basis": "按 1%/99% 分位放宽到 [-5, 582]，排除离群值",
       "already_exists": true
+    },
+    {
+      "name": "products.stock 非负",
+      "type": "range",
+      "severity": "P1",
+      "column": "stock",
+      "min": 0,
+      "max": null,
+      "design_basis": "库存不应为负数",
+      "already_exists": false
     },
     {
       "name": "users.id 非空",
@@ -182,6 +274,16 @@
       "already_exists": true
     },
     {
+      "name": "users.phone 唯一",
+      "type": "unique",
+      "severity": "P1",
+      "columns": [
+        "phone"
+      ],
+      "design_basis": "手机号应唯一标识用户",
+      "already_exists": false
+    },
+    {
       "name": "users.email 邮箱格式",
       "type": "regex",
       "severity": "P1",
@@ -189,6 +291,16 @@
       "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
       "design_basis": "邮箱需含 @ 与域名后缀",
       "already_exists": true
+    },
+    {
+      "name": "users.email 唯一",
+      "type": "unique",
+      "severity": "P1",
+      "columns": [
+        "email"
+      ],
+      "design_basis": "邮箱应唯一标识用户",
+      "already_exists": false
     },
     {
       "name": "users.signup_date 非空",
@@ -205,6 +317,16 @@
       "column": "signup_date",
       "max_age_days": 7,
       "design_basis": "分区数据不应超过 7 天未更新",
+      "already_exists": false
+    },
+    {
+      "name": "users.signup_date 不晚于当前时间",
+      "type": "range",
+      "severity": "P1",
+      "column": "signup_date",
+      "min": null,
+      "max": "now()",
+      "design_basis": "注册日期不应晚于当前时间",
       "already_exists": false
     },
     {

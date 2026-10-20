@@ -654,6 +654,55 @@ def _rule(table, name, rtype, severity, **kw):
     return rule
 
 
+VALID_RULE_TYPES = {"not_null", "unique", "range", "regex", "enum",
+                    "foreign_key", "freshness", "expression"}
+
+
+def normalize_candidates(cands, conn):
+    """校验候选规则：类型受支持、表/列存在、参数完整；标注是否已存在。"""
+    tables = {t: {c["name"] for c in _columns(conn, t)} for t in list_tables(conn)}
+    existing = set()
+    try:
+        for _, items in load_rules().items():
+            for r in items:
+                existing.add(r["name"])
+    except FileNotFoundError:
+        pass
+
+    out, seen = [], set()
+    for c in cands:
+        if not isinstance(c, dict) or c.get("type") not in VALID_RULE_TYPES:
+            continue
+        name = str(c.get("name", "")).strip()
+        if not name or name in seen:
+            continue
+        table = next((t for t in tables if name.startswith(t + ".")), None)
+        if table is None:
+            continue
+        if c.get("column") and c["column"] not in tables[table]:
+            continue
+        if c.get("columns") and not all(x in tables[table] for x in c["columns"]):
+            continue
+        if c["type"] == "foreign_key":
+            ref = c.get("ref_table")
+            if ref not in tables or c.get("ref_column", "id") not in tables[ref]:
+                continue
+        if c["type"] == "range" and c.get("min") is None and c.get("max") is None:
+            continue
+        if c["type"] == "enum" and not c.get("values"):
+            continue
+        if c["type"] == "regex" and not c.get("pattern"):
+            continue
+        if c["type"] == "freshness" and not c.get("max_age_days"):
+            continue
+        if c["type"] == "expression" and not c.get("violation_sql"):
+            continue
+        c["already_exists"] = name in existing
+        out.append(c)
+        seen.add(name)
+    return out
+
+
 def suggest_rules(conn):
     """基于画像生成候选规则（启发式，需人工确认）。"""
     tables = _table_names(conn)
@@ -889,6 +938,7 @@ def cmd_suggest(args):
     source = "heuristic"
     if args.llm:
         candidates, source = llm_refine(candidates)
+    candidates = normalize_candidates(candidates, conn)
     os.makedirs(os.path.dirname(CANDIDATES), exist_ok=True)
     with open(CANDIDATES, "w", encoding="utf-8") as f:
         json.dump({"source": source, "candidates": candidates}, f, ensure_ascii=False, indent=2)

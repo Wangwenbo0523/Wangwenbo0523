@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.6 — 2026-10-20
+
+- **LLM 联调**（deepseek-chat）：候选规则 35 条（启发式 22 条），新增 17 条
+- 新增 `normalize_candidates` 结构校验：类型/表/列/参数不合法直接丢弃，并标注 `already_exists`
+- 新增 [docs/llm-compare.md](docs/llm-compare.md)：记录 LLM 补充的好规则与三个坑（枚举污染、分布当边界、语义错配）
+- `candidates.json` 保留一次 LLM 运行结果作为样本
+
 ## v0.5 — 2026-10-20
 
 - 新增 **可视化 HTML 报告** `reports/latest.html`（指标卡片、趋势 sparkline、规则表、违规明细）
