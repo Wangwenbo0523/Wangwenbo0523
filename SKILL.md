@@ -37,6 +37,7 @@ python scripts/dq.py unmark --table users --rowid 7     # 取消误报标注
 输出：
 
 - `reports/latest.md` —— 人读报告（总览、规则结果、违规明细、评测、修复建议）
+- `reports/latest.html` —— 可视化报告（指标卡片、趋势 sparkline、规则表）
 - `reports/latest.json` —— 机读结果，供 CI 或看板消费
 - `rules/candidates.json` —— 候选规则（`already_exists` 标出是否已被现有规则覆盖）
 - `data/feedback.json` —— 误报标注记录

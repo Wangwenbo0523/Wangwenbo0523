@@ -41,6 +41,9 @@ class DemoSentinelTest(unittest.TestCase):
         self.assertTrue(os.path.exists(path))
         with open(path, encoding="utf-8") as f:
             self.assertIn("数据质量巡检报告", f.read())
+        self.assertTrue(os.path.exists(dq.REPORT_HTML))
+        with open(dq.REPORT_HTML, encoding="utf-8") as f:
+            self.assertIn("数据质量巡检报告", f.read())
 
     def test_feedback_suppression(self):
         conn = self._conn()

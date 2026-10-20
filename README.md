@@ -37,6 +37,8 @@ python scripts/dq.py demo
 
 > 24 是“规则命中次数”，23 是“问题行数”（有一行同时触发数量与金额两条规则）。
 
+每次巡检会同时生成三份报告：`reports/latest.md`（人读）、`reports/latest.html`（可视化：指标卡片 + 趋势图 + 规则表）、`reports/latest.json`（机读）。
+
 其他命令：
 
 | 命令 | 作用 |
@@ -104,7 +106,6 @@ python scripts/dq.py mark --table orders --rowid 23 --rule "orders.created_at �
 ```bash
 python scripts/dq.py check --fail-on P0
 ```
-
 P0 违规时退出码为 1，可直接接在发布流水线里（示例见 `.github/workflows/dq-gate.yml`）。
 
 CI 里用 `init --clean` 生成无脏数据的基线库，否则演示库的“故意注入”会让门禁一直失败。
@@ -147,9 +148,9 @@ DuckDB 的 rowid 从 0 开始且与 sqlite 不通用，演示库用 `__dq_rid__`
 - [x] 历史趋势（`history.jsonl` + `history` 命令）
 - [x] DuckDB 后端适配（同一套规则与指标）
 - [x] 覆盖率门禁（`--min-coverage`）
+- [x] 可视化 HTML 报告与趋势 sparkline
 - [ ] Spark 适配（SQL 下推）
 - [ ] 整行重复、空值聚集等扩展规则
-- [ ] HTML 报告与趋势图
 
 ## 目录
 

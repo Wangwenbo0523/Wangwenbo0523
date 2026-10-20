@@ -31,6 +31,7 @@ FEEDBACK = os.path.join(DATA, "feedback.json")
 REPORTS = os.path.join(ROOT, "reports")
 REPORT_MD = os.path.join(REPORTS, "latest.md")
 REPORT_JSON = os.path.join(REPORTS, "latest.json")
+REPORT_HTML = os.path.join(REPORTS, "latest.html")
 HISTORY = os.path.join(DATA, "history.jsonl")
 
 SEVERITY_ORDER = {"P0": 3, "P1": 2, "P2": 1}
@@ -507,8 +508,127 @@ def write_report(results, metrics=None, cov=None, db_path=None):
     with open(REPORT_JSON, "w", encoding="utf-8") as f:
         json.dump({"results": results, "metrics": metrics, "coverage": cov}, f,
                   ensure_ascii=False, indent=2)
+    with open(REPORT_HTML, "w", encoding="utf-8") as f:
+        f.write(build_html_report(results, metrics, cov, db_path))
     record_history(results, metrics, cov)
     return REPORT_MD
+
+
+def _sparkline(values, color="#c0392b", width=560, height=70):
+    if not values:
+        return ""
+    n = len(values)
+    mx, mn = max(values), min(values)
+    pts = []
+    for i, v in enumerate(values):
+        x = 12 + (width - 24) * (i / (n - 1) if n > 1 else 0.5)
+        ratio = (v - mn) / (mx - mn) if mx > mn else 0.5
+        y = height - 8 - (height - 16) * ratio
+        pts.append(f"{x:.1f},{y:.1f}")
+    return (f'<polyline fill="none" stroke="{color}" stroke-width="2" '
+            f'points="{" ".join(pts)}"/>')
+
+
+def build_html_report(results, metrics=None, cov=None, db_path=None):
+    from html import escape
+
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    db_path = db_path or DB
+    sev = severity_counts(results)
+    total_violations = sum(r["violations"] for r in results)
+
+    hist = []
+    if os.path.exists(HISTORY):
+        with open(HISTORY, encoding="utf-8") as f:
+            hist = [json.loads(line) for line in f if line.strip()][-20:]
+
+    cards = [
+        ("P0", sev.get("P0", 0), "bad"),
+        ("P1", sev.get("P1", 0), "warn"),
+        ("P2", sev.get("P2", 0), "info"),
+        ("规则覆盖率", f"{cov['rate']*100:.1f}%" if cov else "-", "good"),
+        ("检出率", f"{metrics['recall']*100:.1f}%" if metrics else "-", "good"),
+        ("误报率", f"{(1-metrics['precision'])*100:.1f}%" if metrics else "-", "good"),
+    ]
+    card_html = "".join(
+        f'<div class="card {cls}"><div class="k">{escape(k)}</div><div class="v">{v}</div></div>'
+        for k, v, cls in cards
+    )
+
+    rows = []
+    for r in results:
+        cls = {"P0": "bad", "P1": "warn", "P2": "info"}.get(r["severity"], "")
+        rows.append(
+            f'<tr><td>{escape(r["rule"])}</td><td>{r["table"]}</td>'
+            f'<td><span class="tag {cls}">{r["severity"]}</span></td>'
+            f'<td>{r["checked"]}</td><td>{r["violations"]}</td><td>{r["suppressed"]}</td></tr>'
+        )
+
+    details = []
+    for r in results:
+        if not r["violations"]:
+            continue
+        sample_rows = "".join(
+            f'<tr><td>{s["rowid"]}</td><td><code>{escape(", ".join(f"{k}={v}" for k, v in list(s["values"].items())[:4]))}</code></td></tr>'
+            for s in r["samples"]
+        )
+        details.append(
+            f'<h3>{escape(r["rule"])}</h3><table class="mini"><tr><th>rowid</th><th>样例</th></tr>{sample_rows}</table>'
+        )
+
+    trend = ""
+    if hist:
+        viol = [h["violations"] for h in hist]
+        covs = [h["coverage"] * 100 for h in hist if h.get("coverage") is not None]
+        vmin, vmax = min(viol), max(viol)
+        cmin, cmax = (min(covs), max(covs)) if covs else (0, 100)
+        trend = (
+            '<div class="trend">'
+            f'<div class="legend"><span class="dot red"></span>违规行数（{vmin}–{vmax}）</div>'
+            f'<svg viewBox="0 0 560 60" preserveAspectRatio="none">'
+            f'{_sparkline(viol, "#c0392b", 560, 60)}</svg>'
+            f'<div class="legend"><span class="dot blue"></span>覆盖率 %（{cmin:.0f}–{cmax:.0f}）</div>'
+            f'<svg viewBox="0 0 560 60" preserveAspectRatio="none">'
+            f'{_sparkline(covs, "#2E74B5", 560, 60)}</svg>'
+            '</div>'
+        )
+
+    return f"""<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>数据质量巡检报告</title>
+<style>
+:root {{ --navy:#1F4E79; --bad:#c0392b; --warn:#d68910; --info:#2E74B5; --good:#1e8449; }}
+* {{ box-sizing: border-box; }}
+body {{ margin:0; padding:32px 40px; font-family:"Microsoft YaHei","Segoe UI",sans-serif; color:#262626; background:#fafbfc; }}
+h1 {{ color:var(--navy); margin:0 0 6px; font-size:26px; }}
+.meta {{ color:#666; font-size:13px; margin-bottom:18px; }}
+.cards {{ display:flex; gap:12px; flex-wrap:wrap; margin-bottom:18px; }}
+.card {{ background:#fff; border:1px solid #e3e8ef; border-radius:10px; padding:12px 16px; min-width:120px; box-shadow:0 1px 2px rgba(0,0,0,.04); }}
+.card .k {{ color:#666; font-size:12px; }}
+.card .v {{ font-size:24px; font-weight:700; color:var(--navy); }}
+.card.bad .v {{ color:var(--bad); }} .card.warn .v {{ color:var(--warn); }} .card.good .v {{ color:var(--good); }}
+table {{ border-collapse:collapse; width:100%; background:#fff; border:1px solid #e3e8ef; border-radius:8px; overflow:hidden; margin-bottom:20px; }}
+th, td {{ padding:8px 10px; border-bottom:1px solid #eef1f5; font-size:13px; text-align:left; }}
+th {{ background:#f4f7fb; color:#445; }}
+h2 {{ color:var(--navy); font-size:18px; margin:22px 0 10px; }}
+h3 {{ font-size:14px; margin:16px 0 6px; color:#333; }}
+.tag {{ padding:1px 8px; border-radius:10px; font-size:12px; color:#fff; }}
+.tag.bad {{ background:var(--bad); }} .tag.warn {{ background:var(--warn); }} .tag.info {{ background:var(--info); }}
+.trend {{ background:#fff; border:1px solid #e3e8ef; border-radius:8px; padding:12px 16px; margin-bottom:16px; }}
+.trend svg {{ width:100%; height:60px; display:block; margin-bottom:8px; }}
+.legend {{ font-size:12px; color:#666; margin-bottom:6px; }}
+.dot {{ display:inline-block; width:8px; height:8px; border-radius:50%; margin:0 4px 0 12px; }}
+.dot.red {{ background:var(--bad); }} .dot.blue {{ background:var(--info); }}
+code {{ background:#f4f6f8; padding:1px 5px; border-radius:4px; font-size:12px; }}
+</style></head><body>
+<h1>数据质量巡检报告</h1>
+<div class="meta">生成时间：{now} ｜ 数据库：{escape(str(db_path))} ｜ 规则数：{len(results)} ｜ 违规：{total_violations}（含重复计数）</div>
+<div class="cards">{card_html}</div>
+<h2>趋势（最近 {len(hist)} 次）</h2>{trend}
+<h2>规则结果</h2>
+<table><tr><th>规则</th><th>表</th><th>级别</th><th>检查行数</th><th>违规</th><th>已抑制</th></tr>{''.join(rows)}</table>
+<h2>违规明细</h2>{''.join(details)}
+</body></html>"""
 
 
 # ---------------------------------------------------------------- suggest

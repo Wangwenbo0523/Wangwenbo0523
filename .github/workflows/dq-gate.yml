@@ -20,3 +20,9 @@ jobs:
         run: python scripts/dq.py check --fail-on P0 --min-coverage 0.8
       - name: 冒烟测试（含 DuckDB 后端）
         run: python tests/test_smoke.py
+      - name: 上传巡检报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dq-report
+          path: reports/
