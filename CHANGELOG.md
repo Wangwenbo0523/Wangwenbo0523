@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.8 — 2026-10-20
+
+- 新增 [docs/interview-guide.md](docs/interview-guide.md)：30 秒/3 分钟讲稿、架构图、15 个高频追问、反问清单、三行简历条目
+- README 增加面试材料入口
+
 ## v0.7 — 2026-10-20
 
 - 新增规则类型 **`duplicate_rows`**（整行/列组合重复）与 **`null_rate`**（列空值率超阈值）

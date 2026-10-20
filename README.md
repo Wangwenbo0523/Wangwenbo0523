@@ -128,6 +128,10 @@ python scripts/dq.py suggest --llm  # 配置了 DQ_LLM_BASE 时调用 LLM 润色
 
 LLM 联调结论见 [docs/llm-compare.md](docs/llm-compare.md)：LLM 补充了 6 条有价值的“业务常识”规则（手机号/邮箱唯一、价格/库存非负等），但也踩了 3 个坑（枚举被脏数据污染、数据分布当业务边界、注册日期套新鲜度规则）。
 
+## 面试材料
+
+3 分钟讲稿、架构图、15 个高频追问、反问清单、简历条目见 [docs/interview-guide.md](docs/interview-guide.md)。
+
 ### DuckDB
 
 ```bash
