@@ -31,7 +31,15 @@ class DemoSentinelTest(unittest.TestCase):
         metrics = dq.evaluate(results)
         self.assertGreaterEqual(metrics["recall"], 0.95, "检出率过低")
         self.assertGreaterEqual(metrics["precision"], 0.95, "误报率过高")
-        self.assertEqual(len(results), 22, "规则数量应为 22")
+        self.assertEqual(len(results), 26, "规则数量应为 26")
+
+    def test_new_rule_types(self):
+        conn = self._conn()
+        results = {r["rule"]: r for r in dq.run_all(conn)}
+        self.assertEqual(results["users 整行重复"]["violations"], 2)
+        self.assertEqual(results["products 整行重复"]["violations"], 2)
+        self.assertEqual(results["orders 整行重复"]["violations"], 2)
+        self.assertEqual(results["users.name 空值率"]["violations"], 16)
 
     def test_report_written(self):
         conn = self._conn()
@@ -95,7 +103,7 @@ class DemoSentinelTest(unittest.TestCase):
         conn = self._conn(db)
         results = dq.run_all(conn)
         metrics = dq.evaluate(results)
-        self.assertEqual(len(results), 22)
+        self.assertEqual(len(results), 26)
         self.assertEqual(metrics["recall"], 1.0)
         self.assertEqual(metrics["precision"], 1.0)
 

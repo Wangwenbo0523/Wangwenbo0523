@@ -127,6 +127,11 @@ def inject(c, gt):
     c.execute("UPDATE users SET name='   ' WHERE rowid=15")
     add("users", 15, "姓名为空")
 
+    # 空值聚集：30–44 行的姓名同时置空，触发 null_rate 规则
+    for rid in range(30, 45):
+        c.execute("UPDATE users SET name='' WHERE rowid=?", (rid,))
+        add("users", rid, "姓名空值聚集")
+
     # ---------- products ----------
     c.execute("UPDATE products SET price=-10 WHERE rowid=2")
     add("products", 2, "价格为负")

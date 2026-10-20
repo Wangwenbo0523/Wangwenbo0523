@@ -41,6 +41,81 @@
       "issue": "姓名为空"
     },
     {
+      "table": "users",
+      "rowid": 30,
+      "issue": "姓名空值聚集"
+    },
+    {
+      "table": "users",
+      "rowid": 31,
+      "issue": "姓名空值聚集"
+    },
+    {
+      "table": "users",
+      "rowid": 32,
+      "issue": "姓名空值聚集"
+    },
+    {
+      "table": "users",
+      "rowid": 33,
+      "issue": "姓名空值聚集"
+    },
+    {
+      "table": "users",
+      "rowid": 34,
+      "issue": "姓名空值聚集"
+    },
+    {
+      "table": "users",
+      "rowid": 35,
+      "issue": "姓名空值聚集"
+    },
+    {
+      "table": "users",
+      "rowid": 36,
+      "issue": "姓名空值聚集"
+    },
+    {
+      "table": "users",
+      "rowid": 37,
+      "issue": "姓名空值聚集"
+    },
+    {
+      "table": "users",
+      "rowid": 38,
+      "issue": "姓名空值聚集"
+    },
+    {
+      "table": "users",
+      "rowid": 39,
+      "issue": "姓名空值聚集"
+    },
+    {
+      "table": "users",
+      "rowid": 40,
+      "issue": "姓名空值聚集"
+    },
+    {
+      "table": "users",
+      "rowid": 41,
+      "issue": "姓名空值聚集"
+    },
+    {
+      "table": "users",
+      "rowid": 42,
+      "issue": "姓名空值聚集"
+    },
+    {
+      "table": "users",
+      "rowid": 43,
+      "issue": "姓名空值聚集"
+    },
+    {
+      "table": "users",
+      "rowid": 44,
+      "issue": "姓名空值聚集"
+    },
+    {
       "table": "products",
       "rowid": 2,
       "issue": "价格为负"

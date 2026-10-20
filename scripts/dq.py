@@ -194,6 +194,30 @@ def check_rule(conn, table, rule):
             bad_ids = set(ids)
         bad = [r for r in rows if r["__rowid__"] in bad_ids]
 
+    elif t == "duplicate_rows":
+        all_cols = [c["name"] for c in _columns(conn, table) if not c["name"].startswith("__")]
+        cols = rule.get("columns") or all_cols
+        present = {c["name"] for c in _columns(conn, table)}
+        id_col = "__dq_rid__" if (is_duckdb(conn) and "__dq_rid__" in present) else "rowid"
+        collist = ", ".join(f'"{c}"' for c in cols)
+        sql = (f"SELECT {id_col} FROM {table} WHERE ({collist}) IN "
+               f"(SELECT {collist} FROM {table} GROUP BY {collist} HAVING COUNT(*) > 1)")
+        try:
+            bad_ids = {r[0] for r in conn.execute(sql).fetchall()}
+            bad = [r for r in rows if r["__rowid__"] in bad_ids]
+        except Exception:  # 后端不支持行值 IN 时回退 Python 分组
+            groups = {}
+            for r in rows:
+                groups.setdefault(tuple(r.get(c) for c in cols), []).append(r)
+            bad = [x for lst in groups.values() if len(lst) > 1 for x in lst]
+
+    elif t == "null_rate":
+        max_rate = float(rule.get("max_rate", 0.01))
+        nulls = [r for r in rows
+                 if r.get(col) is None or (isinstance(r.get(col), str) and r[col].strip() == "")]
+        rate = len(nulls) / len(rows) if rows else 0.0
+        bad = nulls if rate > max_rate else []
+
     else:
         raise ValueError(f"未知规则类型: {t}")
 
@@ -655,7 +679,8 @@ def _rule(table, name, rtype, severity, **kw):
 
 
 VALID_RULE_TYPES = {"not_null", "unique", "range", "regex", "enum",
-                    "foreign_key", "freshness", "expression"}
+                    "foreign_key", "freshness", "expression",
+                    "duplicate_rows", "null_rate"}
 
 
 def normalize_candidates(cands, conn):

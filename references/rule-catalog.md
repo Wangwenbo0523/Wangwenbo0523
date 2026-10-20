@@ -19,6 +19,8 @@
 | `foreign_key` | 关联键找不到主表 | `column` / `ref_table` / `ref_column` | 完整性 | 维表延迟、跨库同步 |
 | `freshness` | 数据超过 N 天未更新 | `column` / `max_age_days` | 及时性 | 节假日、调度暂停 |
 | `expression` | 自定义 SQL 违规 | `violation_sql` | 一致性 | 口径变更、浮点误差 |
+| `duplicate_rows` | 整行或指定列组合重复 | `columns`（可选） | 唯一性 | 软删除、多版本 |
+| `null_rate` | 列空值率超过阈值 | `column` / `max_rate` | 完整性 | 业务允许的大面积空值 |
 
 ## 示例：订单金额一致性
 

@@ -2,7 +2,7 @@
 
 一个可复用的 **Agent Skill**：对业务数据表做自动剖析、规则检查、质量报告与修复建议，并用 ground truth 评测检出率与误报率。
 
-> 演示库：`users` / `products` / `orders` 三张表，注入 **20 类脏数据**，**22 条规则**，检出率 **100%**、误报率 **0%**。
+> 演示库：`users` / `products` / `orders` 三张表，注入 **20 类脏数据**，**26 条规则**，检出率 **100%**、误报率 **0%**。
 
 ![巡检报告](docs/report-preview.png)
 
@@ -32,12 +32,12 @@ python scripts/dq.py demo
 ```
 == dq-sentinel demo ==
 表：users / products / orders
-规则 22 条，违规 24 行
+规则 26 条，违规 61 行（P0=11 / P1=31 / P2=19）
 检出率 100.0%，误报率 0.0%，F1 1.0000
 报告已写入：reports/latest.md
 ```
 
-> 24 是“规则命中次数”，23 是“问题行数”（有一行同时触发数量与金额两条规则）。
+> 61 是“规则命中次数”，38 是“问题行数”（同一行可能同时触发多条规则，比如空值行同时被非空和空值率规则命中）。
 
 每次巡检会同时生成三份报告：`reports/latest.md`（人读）、`reports/latest.html`（可视化：指标卡片 + 趋势图 + 规则表）、`reports/latest.json`（机读）。
 
@@ -63,8 +63,11 @@ python scripts/dq.py demo
 
 ## 规则怎么写
 
-见 `rules/rules.json`。支持 8 种规则类型：`not_null` / `unique` / `range` /
-`regex` / `enum` / `foreign_key` / `freshness` / `expression`。
+见 `rules/rules.json`。支持 10 种规则类型：`not_null` / `unique` / `range` /
+`regex` / `enum` / `foreign_key` / `freshness` / `expression` / `duplicate_rows` / `null_rate`。
+
+- `duplicate_rows`：整行（或指定列组合）重复；SQL 行值 IN 子查询实现，后端不支持时回退 Python 分组
+- `null_rate`：列空值率超过阈值时，列出所有空值行（做“空值聚集”告警）
 
 自定义一致性规则用 `expression`，写一段返回 `rowid` 的 SQL 即可：
 
@@ -133,14 +136,14 @@ python scripts/make_demo_duck.py
 python scripts/dq.py check --db data/demo.duckdb
 ```
 
-同一套 `rules.json`、同一套指标：22 条规则、17/17 关键字段、检出率 100%、误报率 0%。
+同一套 `rules.json`、同一套指标：26 条规则、17/17 关键字段、检出率 100%、误报率 0%。
 DuckDB 的 rowid 从 0 开始且与 sqlite 不通用，演示库用 `__dq_rid__` 对齐 ground truth。
 
 ## 3 分钟演示脚本
 
 1. **背景**：数据入仓前靠人工抽查，漏报和误报都说不清
 2. **做法**：把检查做成规则 + 报告 + 评测，每条规则有设计依据
-3. **指标**：3 张表、20 类脏数据、22 条规则，检出率 100%、误报率 0%
+3. **指标**：3 张表、20 类脏数据、26 条规则，检出率 100%、误报率 0%
 4. **业务映射**：脏数据会让报表偏差，这个 skill 可以挂在发布前做门禁
 
 ## 路线图

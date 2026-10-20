@@ -44,6 +44,18 @@
       "type": "not_null",
       "column": "name",
       "severity": "P2"
+    },
+    {
+      "name": "users 整行重复",
+      "type": "duplicate_rows",
+      "severity": "P1"
+    },
+    {
+      "name": "users.name 空值率",
+      "type": "null_rate",
+      "column": "name",
+      "max_rate": 0.05,
+      "severity": "P1"
     }
   ],
   "products": [
@@ -87,6 +99,11 @@
       "column": "category",
       "values": ["数码", "家电", "服饰", "食品"],
       "severity": "P2"
+    },
+    {
+      "name": "products 整行重复",
+      "type": "duplicate_rows",
+      "severity": "P1"
     }
   ],
   "orders": [
@@ -151,6 +168,11 @@
       "type": "expression",
       "violation_sql": "SELECT o.rowid FROM orders o WHERE o.unit_price IS NOT NULL AND ABS(o.amount - o.qty * o.unit_price) > 0.01",
       "severity": "P0"
+    },
+    {
+      "name": "orders 整行重复",
+      "type": "duplicate_rows",
+      "severity": "P1"
     }
   ]
 }

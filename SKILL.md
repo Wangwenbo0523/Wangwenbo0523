@@ -57,6 +57,8 @@ python scripts/dq.py unmark --table users --rowid 7     # 取消误报标注
 | `foreign_key` | 外键存在性 | `column` / `ref_table` / `ref_column` | 完整性 |
 | `freshness` | 数据及时性 | `column` / `max_age_days` | 及时性 |
 | `expression` | 自定义 SQL | `violation_sql`（必须 `SELECT rowid`） | 一致性 |
+| `duplicate_rows` | 整行/列组合重复 | `columns`（可选，默认全部列） | 唯一性 |
+| `null_rate` | 列空值率超阈值 | `column` / `max_rate` | 完整性 |
 
 示例（订单金额一致性）：
 
