@@ -38,7 +38,10 @@ SEVERITY_ORDER = {"P0": 3, "P1": 2, "P2": 1}
 
 
 def connect(db=DB):
-    if str(db).lower().endswith(".duckdb"):
+    key = str(db).lower()
+    if key == "spark":
+        return spark_connect()
+    if key.endswith(".duckdb"):
         import duckdb  # 可选依赖，仅指定 .duckdb 时需要：pip install duckdb
         return duckdb.connect(str(db))
     conn = sqlite3.connect(db)
@@ -46,11 +49,59 @@ def connect(db=DB):
     return conn
 
 
+class SparkCursor:
+    """把 Spark DataFrame 包装成 cursor 风格，复用既有 SQL 代码。"""
+
+    def __init__(self, df):
+        self.df = df
+
+    @property
+    def description(self):
+        return [(f.name,) for f in self.df.schema.fields]
+
+    def fetchall(self):
+        return [tuple(r) for r in self.df.collect()]
+
+    def fetchone(self):
+        rows = self.df.limit(1).collect()
+        return tuple(rows[0]) if rows else None
+
+
+class SparkConn:
+    def __init__(self, spark):
+        self.spark = spark
+
+    def execute(self, sql, params=None):
+        if params:
+            for p in params:
+                sql = sql.replace("?", _sql_literal(p), 1)
+        return SparkCursor(self.spark.sql(sql))
+
+
+def _sql_literal(v):
+    if isinstance(v, str):
+        return "'" + v.replace("'", "''") + "'"
+    return str(v)
+
+
+def spark_connect():
+    from make_demo_spark import _spark, register_views
+    spark = _spark()
+    register_views(spark)
+    return SparkConn(spark)
+
+
+def is_spark(conn):
+    return isinstance(conn, SparkConn)
+
+
 def is_duckdb(conn):
     return conn.__class__.__module__.split(".")[0] in ("duckdb", "_duckdb")
 
 
 def list_tables(conn):
+    if is_spark(conn):
+        return sorted(t.name for t in conn.spark.catalog.listTables())
     if is_duckdb(conn):
         return [r[0] for r in conn.execute(
             "SELECT table_name FROM information_schema.tables WHERE table_schema='main' ORDER BY table_name"
@@ -96,10 +147,15 @@ def _rows(cur):
 
 
 def _columns(conn, table):
+    if is_spark(conn):
+        return [{"name": f.name, "type": f.dataType.simpleString()}
+                for f in conn.spark.table(table).schema.fields]
     return _rows(conn.execute(f"PRAGMA table_info('{table}')"))
 
 
 def table_rows(conn, table):
+    if is_spark(conn):
+        return _rows(conn.execute(f"SELECT __dq_rid__ AS __rowid__, * FROM {table}"))
     if is_duckdb(conn):
         cols = [c["name"] for c in _columns(conn, table)]
         sel = "__dq_rid__ AS __rowid__, *" if "__dq_rid__" in cols else "rowid AS __rowid__, *"
@@ -186,6 +242,9 @@ def check_rule(conn, table, rule):
         sql = rule["violation_sql"]
         if is_duckdb(conn):
             sql = sql.replace("date('now','localtime')", "CAST(current_date AS VARCHAR)")
+        if is_spark(conn):
+            sql = re.sub(r"\browid\b", "__dq_rid__", sql)
+            sql = sql.replace("date('now','localtime')", "date_format(current_date(), 'yyyy-MM-dd')")
         ids = [r[0] for r in conn.execute(sql).fetchall()]
         if is_duckdb(conn) and rows and "__dq_rid__" in rows[0]:
             mapping = dict(conn.execute(f"SELECT rowid, __dq_rid__ FROM {table}").fetchall())
@@ -197,19 +256,27 @@ def check_rule(conn, table, rule):
     elif t == "duplicate_rows":
         all_cols = [c["name"] for c in _columns(conn, table) if not c["name"].startswith("__")]
         cols = rule.get("columns") or all_cols
-        present = {c["name"] for c in _columns(conn, table)}
-        id_col = "__dq_rid__" if (is_duckdb(conn) and "__dq_rid__" in present) else "rowid"
-        collist = ", ".join(f'"{c}"' for c in cols)
-        sql = (f"SELECT {id_col} FROM {table} WHERE ({collist}) IN "
-               f"(SELECT {collist} FROM {table} GROUP BY {collist} HAVING COUNT(*) > 1)")
-        try:
-            bad_ids = {r[0] for r in conn.execute(sql).fetchall()}
-            bad = [r for r in rows if r["__rowid__"] in bad_ids]
-        except Exception:  # 后端不支持行值 IN 时回退 Python 分组
+
+        def _group_dups():
             groups = {}
             for r in rows:
                 groups.setdefault(tuple(r.get(c) for c in cols), []).append(r)
-            bad = [x for lst in groups.values() if len(lst) > 1 for x in lst]
+            return [x for lst in groups.values() if len(lst) > 1 for x in lst]
+
+        if is_spark(conn):
+            # Spark 的行值 IN 语义与 sqlite/duckdb 不一致，直接走分组
+            bad = _group_dups()
+        else:
+            present = {c["name"] for c in _columns(conn, table)}
+            id_col = "__dq_rid__" if (is_duckdb(conn) and "__dq_rid__" in present) else "rowid"
+            collist = ", ".join(f'"{c}"' for c in cols)
+            sql = (f"SELECT {id_col} FROM {table} WHERE ({collist}) IN "
+                   f"(SELECT {collist} FROM {table} GROUP BY {collist} HAVING COUNT(*) > 1)")
+            try:
+                bad_ids = {r[0] for r in conn.execute(sql).fetchall()}
+                bad = [r for r in rows if r["__rowid__"] in bad_ids]
+            except Exception:  # 后端不支持行值 IN 时回退 Python 分组
+                bad = _group_dups()
 
     elif t == "null_rate":
         max_rate = float(rule.get("max_rate", 0.01))
@@ -262,11 +329,12 @@ def profile(conn):
     for table in list_tables(conn):
         cols = [c for c in _columns(conn, table) if not c["name"].startswith("__")]
         total = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+        cast_type = "STRING" if is_spark(conn) else "VARCHAR"
         col_stats = []
         for c in cols:
             name = c["name"]
             nulls = conn.execute(
-                f"SELECT COUNT(*) FROM {table} WHERE {name} IS NULL OR TRIM(CAST({name} AS VARCHAR))=''"
+                f"SELECT COUNT(*) FROM {table} WHERE {name} IS NULL OR TRIM(CAST({name} AS {cast_type}))=''"
             ).fetchone()[0]
             distinct = conn.execute(f"SELECT COUNT(DISTINCT {name}) FROM {table}").fetchone()[0]
             try:
@@ -662,8 +730,7 @@ def _quantile(conn, table, col, q):
         return None
     offset = max(0, int(total * q) - 1)
     row = conn.execute(
-        f"SELECT {col} FROM {table} WHERE {col} IS NOT NULL ORDER BY {col} LIMIT 1 OFFSET ?",
-        (offset,),
+        f"SELECT {col} FROM {table} WHERE {col} IS NOT NULL ORDER BY {col} LIMIT 1 OFFSET {offset}"
     ).fetchone()
     return row[0] if row else None
 
@@ -800,7 +867,7 @@ def suggest_rules(conn):
                         f"按 1%/99% 分位放宽到 [{lo}, {hi}]，排除离群值")
                 continue
 
-            if decl == "TEXT" and total:
+            if decl in ("TEXT", "STRING", "VARCHAR") and total:
                 vals = [r[0] for r in conn.execute(
                     f"SELECT DISTINCT {name} FROM {table} WHERE {name} IS NOT NULL"
                 ).fetchall()]

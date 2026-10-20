@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.9 — 2026-10-20
+
+- 新增 **Spark local 模式**：`make_demo_spark.py`（parquet 仓库）+ `check --db spark`
+- 适配点：`__dq_rid__` 对齐 ground truth、`rowid` → `__dq_rid__`、`date('now')` → `date_format(current_date())`、Spark 行值 IN 走 Python 分组
+- 同一套 26 条规则在 sqlite / DuckDB / Spark 三后端指标一致（100% 检出 / 0% 误报）
+- 测试新增 Spark 用例（`DQ_TEST_SPARK=1` 开启；CI 用 setup-java 17 + pyspark）
+- 边界：未做集群调优
+
 ## v0.8 — 2026-10-20
 
 - 新增 [docs/interview-guide.md](docs/interview-guide.md)：30 秒/3 分钟讲稿、架构图、15 个高频追问、反问清单、三行简历条目

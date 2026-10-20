@@ -13,6 +13,7 @@ import dq  # noqa: E402
 import make_demo  # noqa: E402
 
 HAS_DUCKDB = importlib.util.find_spec("duckdb") is not None
+HAS_SPARK = importlib.util.find_spec("pyspark") is not None
 
 
 class DemoSentinelTest(unittest.TestCase):
@@ -106,6 +107,21 @@ class DemoSentinelTest(unittest.TestCase):
         self.assertEqual(len(results), 26)
         self.assertEqual(metrics["recall"], 1.0)
         self.assertEqual(metrics["precision"], 1.0)
+
+    @unittest.skipUnless(HAS_SPARK and os.environ.get("DQ_TEST_SPARK") == "1",
+                         "需要 pyspark，且设置 DQ_TEST_SPARK=1")
+    def test_spark_backend(self):
+        import make_demo_spark
+        make_demo_spark.build_spark(dirty=True)
+        conn = dq.connect("spark")
+        try:
+            results = dq.run_all(conn)
+            metrics = dq.evaluate(results)
+            self.assertEqual(len(results), 26)
+            self.assertEqual(metrics["recall"], 1.0)
+            self.assertEqual(metrics["precision"], 1.0)
+        finally:
+            conn.spark.stop()
 
 
 if __name__ == "__main__":

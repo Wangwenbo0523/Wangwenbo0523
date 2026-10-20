@@ -9,6 +9,8 @@ data/*.db
 data/*.duckdb
 data/history.jsonl
 data/feedback.json
+data/spark_warehouse/
+data/spark-warehouse/
 reports/latest.json
 
 # 本地环境

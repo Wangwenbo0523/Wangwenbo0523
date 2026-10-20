@@ -12,13 +12,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: 安装可选依赖（DuckDB）
-        run: pip install duckdb
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: 安装可选依赖（DuckDB / PySpark）
+        run: pip install duckdb pyspark
       - name: 生成干净演示库（CI 基线）
         run: python scripts/dq.py init --clean
       - name: 数据质量门禁（P0 阻断 + 覆盖率 ≥80%）
         run: python scripts/dq.py check --fail-on P0 --min-coverage 0.8
-      - name: 冒烟测试（含 DuckDB 后端）
+      - name: 冒烟测试（含 DuckDB / Spark 后端）
+        env:
+          DQ_TEST_SPARK: "1"
         run: python tests/test_smoke.py
       - name: 上传巡检报告
         if: always()
